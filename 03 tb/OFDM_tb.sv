@@ -94,6 +94,17 @@ QPSK_Mod_AXI_Stream inst_QPSK_Mod_AXI_Stream(
 );
 
 /*********************************pilot insert***********************************/
+reg [7:0] s_weice_state;
+always @(posedge clk) begin
+   if(rst)begin
+        s_weice_state = #1 8'd0;
+   end
+   else if(mod_m_axis_tlast&&mod_m_axis_tvalid&&mod_m_axis_tready)
+   		s_weice_state = #1 8'd0;
+   else if(mod_m_axis_tvalid&&mod_m_axis_tready) begin
+        s_weice_state = #1 s_weice_state + 1;
+   end
+end
 
 Pilots_Insert_AXI_Stream_3 #(
     // .PILOT_SEQ_FILE("../../../../../../src_axis/pilot_seq.mem"),
@@ -112,8 +123,8 @@ Pilots_Insert_AXI_Stream_3 #(
 
     // AXI-Stream 输出接口
     .m_axis_tvalid(insert_m_axis_tvalid),
-    .m_axis_tready(m_axis_tready),
-	// .m_axis_tready(insert_m_axis_tready),
+    // .m_axis_tready(m_axis_tready),
+	.m_axis_tready(insert_m_axis_tready),
     .m_axis_tdata(insert_m_axis_tdata),
     .m_axis_tlast(insert_m_axis_tlast),   // 输出帧结束标??
     .m_axis_symb_tlast(insert_m_axis_symb_tlast)
@@ -126,42 +137,30 @@ wire [31:0] fft_m_tdata;
 wire 		fft_m_tlast;
 wire		fft_m_tready;  
 
-// IFFT inst_IFFT(
-// 	.aclk(clk), 											// input aclk
-// 	//.aclken(aclken), 									// input aclken
-// 	.aresetn(~rst), 										// input aresetn
-// 	.s_axis_config_tdata(16'h3610), 					// input [23 : 0] s_axis_config_tdata: [14:9] scale; [8]fwd_inv; [5:0]: cp_len
-// 														// scale: shift right 6 bits : 0, 1, 2, 3, inv = 0 
-// 														// config_tdata = 0000 0011 0110 0001 0000
-// 	.s_axis_config_tvalid(1'b1), 						// input s_axis_config_tvalid
-// 	.s_axis_config_tready(), 							// ouput s_axis_config_tready
-// 	.s_axis_data_tdata(insert_m_axis_tdata), 			// input [31 : 0] s_axis_data_tdata
-// 	.s_axis_data_tvalid(insert_m_axis_tvalid),			// input s_axis_data_tvalid
-// 	.s_axis_data_tready(insert_m_axis_tready), 			// ouput s_axis_data_tready
-// 	.s_axis_data_tlast(insert_m_axis_tlast), 					// input s_axis_data_tlast
-// 	.m_axis_data_tdata(fft_m_tdata), 					// ouput [31 : 0] m_axis_data_tdata
-// 	.m_axis_data_tvalid(fft_m_tvalid), 					// ouput m_axis_data_tvalid
-// 	.m_axis_data_tready(m_axis_tready), 					// input m_axis_data_tready
-// 	.m_axis_data_tlast(),					// ouput m_axis_data_tlast
-// 	.event_frame_started(event_frame_started), 	// ouput event_frame_started
-// 	.event_tlast_unexpected(), 						// ouput event_tlast_unexpected
-// 	.event_tlast_missing(), 							// ouput event_tlast_missing
-// 	.event_status_channel_halt(event_status_channel_halt), // ouput event_status_channel_halt
-// 	.event_data_in_channel_halt(event_data_in_channel_halt), // ouput event_data_in_channel_halt
-// 	.event_data_out_channel_halt(event_data_out_channel_halt)
-// 	); // ouput event_data_out_channel_halt
-
-reg [7:0] s_weice_state;
-always @(posedge clk) begin
-   if(rst)begin
-        s_weice_state = #1 8'd0;
-   end
-   else if(mod_m_axis_tlast&&mod_m_axis_tvalid&&mod_m_axis_tready)
-   		s_weice_state = #1 8'd0;
-   else if(mod_m_axis_tvalid&&mod_m_axis_tready) begin
-        s_weice_state = #1 s_weice_state + 1;
-   end
-end
+IFFT inst_IFFT(
+	.aclk(clk), 											// input aclk
+	//.aclken(aclken), 									// input aclken
+	.aresetn(~rst), 										// input aresetn
+	.s_axis_config_tdata(16'h3610), 					// input [23 : 0] s_axis_config_tdata: [14:9] scale; [8]fwd_inv; [5:0]: cp_len
+														// scale: shift right 6 bits : 0, 1, 2, 3, inv = 0 
+														// config_tdata = 0000 0011 0110 0001 0000
+	.s_axis_config_tvalid(1'b1), 						// input s_axis_config_tvalid
+	.s_axis_config_tready(), 							// ouput s_axis_config_tready
+	.s_axis_data_tdata(insert_m_axis_tdata), 			// input [31 : 0] s_axis_data_tdata
+	.s_axis_data_tvalid(insert_m_axis_tvalid),			// input s_axis_data_tvalid
+	.s_axis_data_tready(insert_m_axis_tready), 			// ouput s_axis_data_tready
+	.s_axis_data_tlast(insert_m_axis_tlast), 					// input s_axis_data_tlast
+	.m_axis_data_tdata(fft_m_tdata), 					// ouput [31 : 0] m_axis_data_tdata
+	.m_axis_data_tvalid(fft_m_tvalid), 					// ouput m_axis_data_tvalid
+	.m_axis_data_tready(m_axis_tready), 					// input m_axis_data_tready
+	.m_axis_data_tlast(),					// ouput m_axis_data_tlast
+	.event_frame_started(event_frame_started), 	// ouput event_frame_started
+	.event_tlast_unexpected(), 						// ouput event_tlast_unexpected
+	.event_tlast_missing(), 							// ouput event_tlast_missing
+	.event_status_channel_halt(event_status_channel_halt), // ouput event_status_channel_halt
+	.event_data_in_channel_halt(event_data_in_channel_halt), // ouput event_data_in_channel_halt
+	.event_data_out_channel_halt(event_data_out_channel_halt)
+	); // ouput event_data_out_channel_halt
 
 always #10 	clk = ~clk;	
 
@@ -225,7 +224,7 @@ always @(posedge clk) begin
 		s_bit_symb_last = symb_last[ii + lop_cnt*Len];
 		ii = ii + 1;
 	end
-	else if(ii == 800)begin
+	else if(ii == 600)begin
 		ii = 0;
 	end
 	else begin
@@ -239,7 +238,7 @@ end
 
 initial begin
     wait(lop_cnt == NLOP);      // 
-    #1000;                      // 
+    #30000;                      // 
     $stop;
 end
 

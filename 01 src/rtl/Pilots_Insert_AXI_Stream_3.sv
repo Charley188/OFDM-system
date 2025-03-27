@@ -158,7 +158,7 @@ always@(*) begin
                 next_state = NULL;
             else if(DATA_FLAG)
                 next_state = DATA;
-            else if(fifo_axis_symb_tlast)
+            else if(fifo_axis_symb_tlast && fifo_axis_tvalid)
                 next_state = IDLE;
         end
         PILOT: begin

@@ -6,7 +6,8 @@ module QPSK_Mod_AXI_Stream(
     input         s_axis_tvalid,                    // 输入数据有效
     input  [5:0]  s_axis_tdata,                     // 输入数据（6位）
     input         s_axis_tlast,                     // 输入数据包结束
-    output  reg   s_axis_tready,                    // 输入就绪
+    // output  reg   s_axis_tready,                    // 输入就绪
+    output        s_axis_tready,                    // 输入就绪
     input         s_bit_symb_last,
 
     // AXI-Stream 输出接口（发送调制后的复数数据）
@@ -27,16 +28,16 @@ reg        symb_last_reg;
 //-----------------------------
 // 输入握手逻辑
 //-----------------------------
-// assign s_axis_tready = ~data_valid || (m_axis_tvalid && m_axis_tready); // 输入就绪条件
+assign s_axis_tready = m_axis_tready; // 输入就绪条件
 
-always @(posedge clk) begin
-    if (rst) begin
-        s_axis_tready <= #1 1'b0;
-    end 
-    else begin
-        s_axis_tready <= #1 m_axis_tready; 
-    end
-end
+// always @(posedge clk) begin
+//     if (rst) begin
+//         s_axis_tready <= #1 1'b0;
+//     end 
+//     else begin
+//         s_axis_tready <= #1 m_axis_tready; 
+//     end
+// end
 
 always @(posedge clk) begin
     if (rst) begin
