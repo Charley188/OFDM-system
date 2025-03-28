@@ -149,11 +149,12 @@ IFFT inst_IFFT(
 	.s_axis_data_tdata(insert_m_axis_tdata), 			// input [31 : 0] s_axis_data_tdata
 	.s_axis_data_tvalid(insert_m_axis_tvalid),			// input s_axis_data_tvalid
 	.s_axis_data_tready(insert_m_axis_tready), 			// ouput s_axis_data_tready
-	.s_axis_data_tlast(insert_m_axis_tlast), 					// input s_axis_data_tlast
+	.s_axis_data_tlast(), 								// input s_axis_data_tlast
+	// .s_axis_data_tlast(insert_m_axis_tlast), 					// input s_axis_data_tlast
 	.m_axis_data_tdata(fft_m_tdata), 					// ouput [31 : 0] m_axis_data_tdata
 	.m_axis_data_tvalid(fft_m_tvalid), 					// ouput m_axis_data_tvalid
 	.m_axis_data_tready(m_axis_tready), 					// input m_axis_data_tready
-	.m_axis_data_tlast(),					// ouput m_axis_data_tlast
+	.m_axis_data_tlast(fft_m_tlast),					// ouput m_axis_data_tlast
 	.event_frame_started(event_frame_started), 	// ouput event_frame_started
 	.event_tlast_unexpected(), 						// ouput event_tlast_unexpected
 	.event_tlast_missing(), 							// ouput event_tlast_missing
@@ -217,7 +218,7 @@ always @(posedge clk) begin
 		s_bit_symb_last = 1'd0;
 		ii = ii;
 	end
-	else if(s_axis_tready && (ii<=95)) begin
+	else if(s_axis_tready && (ii<=95) && (lop_cnt<4)) begin
 		s_axis_tvalid = dat_vld[ii + lop_cnt*Len];
 		s_axis_tdata = datin[ii + lop_cnt*Len];
 		s_axis_tlast = dat_last[ii + lop_cnt*Len];
@@ -236,9 +237,77 @@ always @(posedge clk) begin
 	end
 end
 
+//========================probe============================//
+wire [31:0] 	QPSK_Mod_data_out 		= mod_m_axis_tdata;	
+wire			QPSK_Mod_tvalid_out		= mod_m_axis_tvalid;
+wire			QPSK_Mod_tlast_out		= mod_m_axis_tlast;
+wire 			QPSK_Mod_tready_out		= mod_m_axis_tready;
+
+wire [31:0] 	IFFT_Mod_data_out 		= fft_m_tdata;	
+wire			IFFT_Mod_tvalid_out		= fft_m_tvalid;
+wire			IFFT_Mod_tlast_out		= fft_m_tlast;
+wire 			IFFT_Mod_tready_out		= m_axis_tready;
+
+wire [31:0] 	pilot_Mod_data_out 		= insert_m_axis_tdata;	
+wire			pilot_Mod_tvalid_out	= insert_m_axis_tvalid;
+wire			pilot_Mod_tlast_out		= insert_m_axis_tlast;
+wire 			pilot_Mod_tready_out	= insert_m_axis_tready;
+
+integer datout_cnt_0,datout_cnt_1,datout_cnt_2;
+integer qpsk_Mod_Re_fo, qpsk_Mod_Im_fo,qpsk_cnt_fo;
+integer pilot_Mod_Re_fo, pilot_Mod_Im_fo,pilot_cnt_fo;
+integer IFFT_Mod_Re_fo, IFFT_Mod_Im_fo,IFFT_cnt_fo;
+initial begin
+	datout_cnt_0 = 0;
+	datout_cnt_1 = 0;
+	datout_cnt_2 = 0;	
+	qpsk_Mod_Re_fo = $fopen("../../../../../04 matlab/RTL_OFDM_TX_QPSK_Mod_Re.txt");		
+	qpsk_Mod_Im_fo = $fopen("../../../../../04 matlab/RTL_OFDM_TX_QPSK_Mod_Im.txt");
+	qpsk_cnt_fo = $fopen("../../../../../04 matlab/RTL_OFDM_TX_QPSK_Mod_cnt.txt");
+
+	pilot_Mod_Re_fo = $fopen("../../../../../04 matlab/RTL_OFDM_TX_pilot_Mod_Re.txt");		
+	pilot_Mod_Im_fo = $fopen("../../../../../04 matlab/RTL_OFDM_TX_pilot_Mod_Im.txt");
+	pilot_cnt_fo = $fopen("../../../../../04 matlab/RTL_OFDM_TX_pilot_Mod_cnt.txt");
+
+	IFFT_Mod_Re_fo = $fopen("../../../../../04 matlab/RTL_OFDM_TX_IFFT_Mod_Re.txt");		
+	IFFT_Mod_Im_fo = $fopen("../../../../../04 matlab/RTL_OFDM_TX_IFFT_Mod_Im.txt");
+	IFFT_cnt_fo = $fopen("../../../../../04 matlab/RTL_OFDM_TX_IFFT_Mod_cnt.txt");
+	forever begin
+		@(posedge clk);
+		if (QPSK_Mod_tvalid_out && QPSK_Mod_tready_out) begin
+			$fwrite(qpsk_Mod_Re_fo,"%d\n",$signed(QPSK_Mod_data_out[15:0]));
+			$fwrite(qpsk_Mod_Im_fo,"%d\n",$signed(QPSK_Mod_data_out[31:16]));
+			$fwrite(qpsk_cnt_fo,"%d\n",datout_cnt_0);
+			datout_cnt_0 = datout_cnt_0 + 1;			
+			end
+		if (pilot_Mod_tvalid_out && pilot_Mod_tready_out) begin
+			$fwrite(pilot_Mod_Re_fo,"%d\n",$signed(pilot_Mod_data_out[15:0]));
+			$fwrite(pilot_Mod_Im_fo,"%d\n",$signed(pilot_Mod_data_out[31:16]));
+			$fwrite(pilot_cnt_fo,"%d\n",datout_cnt_1);
+			datout_cnt_1 = datout_cnt_1 + 1;			
+			end
+		if (IFFT_Mod_tvalid_out && IFFT_Mod_tready_out) begin
+			$fwrite(IFFT_Mod_Re_fo,"%d\n",$signed(IFFT_Mod_data_out[15:0]));
+			$fwrite(IFFT_Mod_Im_fo,"%d\n",$signed(IFFT_Mod_data_out[31:16]));
+			$fwrite(IFFT_cnt_fo,"%d\n",datout_cnt_2);
+			datout_cnt_2 = datout_cnt_2 + 1;			
+			end
+	end
+end
+
+//=========================stop=============================//
 initial begin
     wait(lop_cnt == NLOP);      // 
-    #30000;                      // 
+    #20000;                      //
+	$fclose(pilot_Mod_Re_fo);
+	$fclose(pilot_Mod_Im_fo); 
+	$fclose(pilot_cnt_fo);
+	$fclose(IFFT_Mod_Re_fo);
+	$fclose(IFFT_Mod_Im_fo);
+	$fclose(IFFT_cnt_fo);
+	$fclose(qpsk_Mod_Re_fo);
+	$fclose(qpsk_Mod_Im_fo);
+	$fclose(qpsk_cnt_fo);
     $stop;
 end
 

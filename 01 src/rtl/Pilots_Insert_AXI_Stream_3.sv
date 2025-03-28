@@ -256,6 +256,6 @@ always @(posedge clk) begin
     end
  end
 
-assign rd_en = (next_state == DATA);
+assign rd_en = (next_state == DATA) && (m_axis_tready);
 
  endmodule

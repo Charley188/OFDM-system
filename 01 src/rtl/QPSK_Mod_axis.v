@@ -60,8 +60,8 @@ wire [15:0] datout_Im = (idata_reg[1]) ? 16'h5A82 : 16'hA57E; // Q分量
 //-----------------------------
 // 输出握手逻辑
 //-----------------------------
-assign m_axis_tvalid = data_valid;       // 输出数据有效
-assign m_axis_tdata  = {datout_Im, datout_Re}; // 合并I/Q分量
+assign m_axis_tvalid = data_valid && m_axis_tready; // 输出数据有效
+assign m_axis_tdata  = {datout_Im, datout_Re};      // 合并I/Q分量
 assign m_axis_tlast = last_reg;
 assign m_bit_symb_last = symb_last_reg;
 
