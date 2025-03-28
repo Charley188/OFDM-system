@@ -121,32 +121,32 @@ Datout_sim = reshape(tx_out, 1, (NFFT+CP)*(PRE + NDS)*NLOP);
 
 % Plotting ================================================================
 figure(1);
+plot(1:length(QPSK_Mod_sim), real(QPSK_Mod_sim),'o-b');
+hold on
+plot(1:length(Datout_rtl), real(Datout_rtl),'x-r');
+title('comparison of Data\_QPSK\_MOD');
+legend('Datout\_sim','Datout\_rtl');
+
+figure(2);
 plot(1:length(Pilots_Insert_sim), real(Pilots_Insert_sim),'o-b');
 hold on
 plot(1:length(Pilots_Insert_rtl), real(Pilots_Insert_rtl),'x-r');
 ylim([-3 3]);
 title('comparison of Pilots\_Insert output');
-legend('Pilots\_Insert\_sim','Pilots\_Insert\_rtl');
+legend('Pilots\_Insert\_sim','Pilots\_Insert\_re\_rtl');
 
-figure(2);
+figure(3);
 plot(1:length(Pilots_Insert_sim), imag(Pilots_Insert_sim),'o-b');
 hold on
 plot(1:length(Pilots_Insert_rtl), imag(Pilots_Insert_rtl),'x-r');
 ylim([-3 3]);
 title('comparison of Pilots\_Insert output');
-legend('Pilots\_Insert\_sim','Pilots\_Insert\_rtl');
+legend('Pilots\_Insert\_sim','Pilots\_Insert\_im\_rtl');
 
-figure(3);
+figure(4);
 plot(1:length(IFFT_Mod_sim), imag(IFFT_Mod_sim),'o-b');
 hold on
 plot(1:length(IFFT_Mod_rtl), imag(IFFT_Mod_rtl),'x-r');
 title('comparison of IFFT\_Mod output');
 legend('IFFT\_Mod\_sim','IFFT\_Mod\_rtl');
-
-figure(4);
-plot(1:length(QPSK_Mod_sim), real(QPSK_Mod_sim),'o-b');
-hold on
-plot(1:length(Datout_rtl), real(Datout_rtl),'x-r');
-title('comparison of Data output of transmitter');
-legend('Datout\_sim','Datout\_rtl');
 

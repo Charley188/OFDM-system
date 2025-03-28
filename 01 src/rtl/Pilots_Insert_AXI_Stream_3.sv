@@ -19,7 +19,6 @@ module Pilots_Insert_AXI_Stream_3 #(
     input  wire         m_axis_tready,
     output reg  [31:0]  m_axis_tdata=0,
     output reg          m_axis_tlast,
-    output reg          m_axis_symb_tlast   
 );
 
 
@@ -39,7 +38,7 @@ rom_pilot inst_rom_pilot (
 // fifo IP
 //-----------------------------------------------------------------
 
-reg        fifo_axis_tvalid;
+reg         fifo_axis_tvalid;
 wire [31:0] fifo_axis_tdata;
 wire        fifo_axis_tlast;
 wire        fifo_axis_symb_tlast;
@@ -63,22 +62,6 @@ pilot_insert_fifo pilot_insert_fifo (
   .empty(empty)  // output wire empty
 );
 
-
-// always @(posedge clk)begin
-//     if(rst)begin
-//         fifo_axis_tvalid <= #1 1'd0;
-//         fifo_axis_tlast <= #1 1'd0;
-//         fifo_axis_tdata <= #1 32'd0;
-//         rd_en_1d <= #1 1'd0;
-//     end
-//     else begin
-//         fifo_axis_tvalid <= #1 rd_en_1d;
-//         fifo_axis_tlast <= #1 dout_data[32];
-//         fifo_axis_tdata <= #1 dout_data[31:0];
-//         rd_en_1d <= #1 rd_en;
-//     end
-// end
-
 always @(posedge clk)begin
     if(rst)begin
         fifo_axis_tvalid <= #1 1'd0;
@@ -92,7 +75,7 @@ assign #1 fifo_axis_tlast = dout_data[33];
 assign #1 fifo_axis_symb_tlast = dout_data[32];
 assign #1 fifo_axis_tdata = dout_data[31:0];
 // assign fifo_axis_tvalid = rd_en;
-assign #1 s_axis_tready = ~full && m_axis_tready;
+assign #1 s_axis_tready = ~full && insert_axis_tready;
 
 //-----------------------------------------------------------------
 // pilot_data
@@ -125,11 +108,11 @@ always @(posedge clk) begin
 end
 
 wire NULL_FLAG;
-assign NULL_FLAG = (data_cnt == 7'd0 || data_cnt == 7'd27) && m_axis_tready && (~empty);
+assign NULL_FLAG = (data_cnt == 7'd0 || data_cnt == 7'd27) && insert_axis_tready && (~empty);
 assign DATA_FLAG = (data_cnt == 7'd1 || data_cnt == 7'd8 || data_cnt == 7'd22
-     || data_cnt == 7'd38 || data_cnt == 7'd44 || data_cnt == 7'd58) && m_axis_tready && (~empty);
+     || data_cnt == 7'd38 || data_cnt == 7'd44 || data_cnt == 7'd58) && insert_axis_tready && (~empty);
 assign PILOT_FLAG = (data_cnt == 7'd7 || data_cnt == 7'd21 || data_cnt == 7'd43
-     || data_cnt == 7'd57) && m_axis_tready;
+     || data_cnt == 7'd57) && insert_axis_tready;
 
 always@(*) begin
     case (current_state)
@@ -175,6 +158,12 @@ always@(*) begin
     endcase // current_state
 end
 
+reg [31:0]  insert_axis_tdata;
+reg         insert_axis_tvalid;
+reg         insert_axis_tlast;
+reg         insert_axis_symb_tlast;
+wire        insert_axis_tready;
+
 always @(posedge clk) begin
     if(rst)begin
         data_cnt <= #1 7'd0;
@@ -188,7 +177,7 @@ always @(posedge clk) begin
                 // rd_en <= #1 1'd0;
             end
             NULL:begin
-                if(m_axis_tready)begin
+                if(insert_axis_tready)begin
                     data_cnt <= #1 data_cnt + 1'd1;
                     // rd_en <= #1 1'd0;
                 end
@@ -196,7 +185,7 @@ always @(posedge clk) begin
             DATA: begin
                 if(data_cnt == 7'd64)
                     data_cnt <= #1 7'd0;
-                else if(m_axis_tready && (~empty))begin
+                else if(insert_axis_tready && (~empty))begin
                     data_cnt <= #1 data_cnt + 1'd1;
                     // rd_en <= #1 1'd1;
                 end
@@ -204,7 +193,7 @@ always @(posedge clk) begin
                     pilot_cnt <= #1 3'd0;
             end
             PILOT: begin
-                if(m_axis_tready)begin
+                if(insert_axis_tready)begin
                     data_cnt <= #1 data_cnt + 1'd1;
                     pilot_cnt <= #1 pilot_cnt + 1'd1;
                     // rd_en <= #1 1'd0;
@@ -223,39 +212,53 @@ always @(posedge clk) begin
 
         case (current_state)
             IDLE:begin
-                m_axis_tdata <= #1 32'd0;
-                m_axis_tvalid <= #1 1'd0;
-                m_axis_tlast <= #1 1'd0;
-                m_axis_symb_tlast <= #1 1'd0;
+                insert_axis_tdata <= #1 32'd0;
+                insert_axis_tvalid <= #1 1'd0;
+                insert_axis_tlast <= #1 1'd0;
+                insert_axis_symb_tlast <= #1 1'd0;
             end
             NULL:begin
-                m_axis_tdata <= #1 32'd0;
-                m_axis_tvalid <= #1 1'd1;
-                m_axis_tlast <= #1 1'd0;
-                m_axis_symb_tlast <= #1 1'd0;
+                insert_axis_tdata <= #1 32'd0;
+                insert_axis_tvalid <= #1 1'd1;
+                insert_axis_tlast <= #1 1'd0;
+                insert_axis_symb_tlast <= #1 1'd0;
             end
             DATA: begin
-                m_axis_tdata <= #1 fifo_axis_tdata;
-                m_axis_tvalid <= #1 fifo_axis_tvalid;
-                m_axis_tlast <= #1 fifo_axis_tlast;
-                m_axis_symb_tlast <= #1 fifo_axis_symb_tlast;
+                insert_axis_tdata <= #1 fifo_axis_tdata;
+                insert_axis_tvalid <= #1 fifo_axis_tvalid;
+                insert_axis_tlast <= #1 fifo_axis_tlast;
+                insert_axis_symb_tlast <= #1 fifo_axis_symb_tlast;
             end
             PILOT: begin
-                m_axis_tdata <= #1 pilot_data;
-                m_axis_tvalid <= #1 1'd1;
-                m_axis_tlast <= #1 1'd0;
-                m_axis_symb_tlast <= #1 1'd0;
+                insert_axis_tdata <= #1 pilot_data;
+                insert_axis_tvalid <= #1 1'd1;
+                insert_axis_tlast <= #1 1'd0;
+                insert_axis_symb_tlast <= #1 1'd0;
             end
             default:begin
-                m_axis_tdata <= #1 32'd0;
-                m_axis_tvalid <= #1 1'd0;
-                m_axis_tlast <= #1 1'd0;
-                m_axis_symb_tlast <= #1 1'd0;
+                insert_axis_tdata <= #1 32'd0;
+                insert_axis_tvalid <= #1 1'd0;
+                insert_axis_tlast <= #1 1'd0;
+                insert_axis_symb_tlast <= #1 1'd0;
             end
         endcase
     end
  end
 
-assign rd_en = (next_state == DATA) && (m_axis_tready);
+axis_data_fifo_0 inst_axis_data_fifo_0 (
+  .s_axis_aresetn(~rst),  // input wire s_axis_aresetn
+  .s_axis_aclk(clk),        // input wire s_axis_aclk
+  .s_axis_tvalid(insert_axis_tvalid),    // input wire s_axis_tvalid
+  .s_axis_tready(insert_axis_tready),    // output wire s_axis_tready
+  .s_axis_tdata(insert_axis_tdata),      // input wire [31 : 0] s_axis_tdata
+  .s_axis_tlast(insert_axis_tlast),      // input wire s_axis_tlast
+  .m_axis_tvalid(m_axis_tvalid),    // output wire m_axis_tvalid
+  .m_axis_tready(m_axis_tready),    // input wire m_axis_tready
+  .m_axis_tdata(m_axis_tdata),      // output wire [31 : 0] m_axis_tdata
+  .m_axis_tlast(m_axis_tlast)      // output wire m_axis_tlast
+);
+
+
+assign rd_en = (next_state == DATA) && (insert_axis_tready);
 
  endmodule
